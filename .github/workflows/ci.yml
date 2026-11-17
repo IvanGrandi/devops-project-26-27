@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, feature/ci-pipeline]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -42,4 +42,4 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ghcr.io/ivangrandi/devops-project-26-27:${{ github.sha }}

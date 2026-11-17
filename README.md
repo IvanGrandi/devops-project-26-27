@@ -1,5 +1,9 @@
 # Lab 1 Answers
 
+GitHub repository: [IvanGrandi/devops-project-26-27](https://github.com/IvanGrandi/devops-project-26-27)
+
+Published image: [ghcr.io/ivangrandi/devops-project-26-27](https://github.com/IvanGrandi/devops-project-26-27/pkgs/container/devops-project-26-27)
+
 Students:
 
 - Ivan Grandi

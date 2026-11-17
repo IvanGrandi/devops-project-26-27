@@ -6,5 +6,8 @@ resources:
 replicas:
   - name: myapp
     count: 1
+images:
+  - name: ghcr.io/ivangrandi/devops-project-26-27
+    newTag: "9645b3536f777196b9bf88557f2bb3b83bb65aab"
 commonLabels:
   env: dev

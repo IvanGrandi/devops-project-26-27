@@ -6,6 +6,16 @@ node_modules/
 .env.*
 
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+crash.log
+*.tfplan
+# tfvars files that contain secrets (normal ones like dev.tfvars are committed)
+*.secret.tfvars
+secrets.tfvars
+
 # Logs
 npm-debug.log*
 *.log
@@ -15,3 +25,9 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 commands.txt
+
+
+*.tfstate*
+.terraform/
+*.secret.tfvars
+secrets.tfvars

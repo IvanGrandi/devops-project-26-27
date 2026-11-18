@@ -25,3 +25,9 @@ npm-debug.log*
 Thumbs.db
 .vscode/
 commands.txt
+
+
+*.tfstate*
+.terraform/
+*.secret.tfvars
+secrets.tfvars

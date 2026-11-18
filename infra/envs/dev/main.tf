@@ -5,6 +5,9 @@ terraform {
       version = "~> 3.0"
     }
   }
+  backend "local" {
+    path = "C:/terraform-mock-back/dev/terraform.tfstate"
+  }
 }
 
 provider "docker" {}
@@ -12,6 +15,7 @@ provider "docker" {}
 variable "env_name" { type = string }
 variable "image" { type = string }
 variable "external_port" { type = number }
+
 
 
 module "webapp" {

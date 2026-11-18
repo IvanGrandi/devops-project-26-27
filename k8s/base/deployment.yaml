@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: myapp
+          image: ghcr.io/ivangrandi/devops-project-26-27:338ed8f64eb5cccdd278ca5b3ef63694c2ee7793
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          env:
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-config
+                  key: APP_ENV
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secret
+                  key: API_KEY

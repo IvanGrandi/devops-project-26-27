@@ -60,6 +60,10 @@ resource "kubernetes_deployment" "app" {
           port {
             container_port = 3000
           }
+          
+          security_context {
+            privileged = true
+          }
         }
       }
     }

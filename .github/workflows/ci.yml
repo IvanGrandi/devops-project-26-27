@@ -5,7 +5,14 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
 jobs:
+  # ---------------------------------------------------------------------------
+  # Application (Labs 1 and 2) - unchanged
+  # ---------------------------------------------------------------------------
   build-test:
     runs-on: ubuntu-latest
     steps:
@@ -43,3 +50,150 @@ jobs:
         with:
           push: true
           tags: ghcr.io/ivangrandi/devops-project-26-27:${{ github.sha }}
+
+  # ---------------------------------------------------------------------------
+  # Terraform (Lab 3, Part 5) - only on Pull Requests that modify infra/**
+  # ---------------------------------------------------------------------------
+
+  # Detects whether the PR touches infra/** (or this workflow).
+  # Skipped on push to main, so every Terraform job below is skipped too.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - '.github/workflows/ci.yml'
+
+  # 5.1 - formatting (whole infra/ tree, module included)
+  tf-fmt:
+    name: terraform fmt
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive -diff infra
+
+  # 5.1 - validation of every root configuration
+  tf-validate:
+    name: terraform validate (${{ matrix.dir }})
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        dir:
+          - infra/quickstart
+          - infra/envs/dev
+          - infra/envs/staging
+          - infra/preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: terraform init (no backend)
+        run: terraform -chdir=${{ matrix.dir }} init -backend=false
+      - name: terraform validate
+        run: terraform -chdir=${{ matrix.dir }} validate -no-color
+
+  # 5.2 - plan for each environment, uploaded as an artifact
+  # 5.4 - there is intentionally NO terraform apply anywhere in this workflow
+  tf-plan:
+    name: terraform plan (${{ matrix.env }})
+    needs: [tf-fmt, tf-validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # dev declares a local backend pointing to a Windows path (C:/...),
+          # so in CI we override it with a throwaway state file on the runner.
+          - env: dev
+            init_args: -backend-config=path=terraform-ci.tfstate
+          # staging has no backend block: default local state is fine.
+          - env: staging
+            init_args: ""
+    defaults:
+      run:
+        working-directory: infra/envs/${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: terraform init
+        run: terraform init ${{ matrix.init_args }}
+      - name: terraform plan
+        run: terraform plan -var-file=${{ matrix.env }}.tfvars -out=tfplan -no-color
+      - name: Export plan as text
+        run: |
+          terraform show -no-color tfplan > plan-${{ matrix.env }}.txt
+          {
+            echo "### Terraform plan - ${{ matrix.env }}"
+            echo '```'
+            cat plan-${{ matrix.env }}.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ matrix.env }}
+          path: infra/envs/${{ matrix.env }}/plan-${{ matrix.env }}.txt
+          retention-days: 7
+
+  # 5.3 - static security scan
+  tf-security:
+    name: terraform security scan (checkov)
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # Full report: every finding is shown, but none of them blocks the PR.
+      - name: Checkov - full report (informational)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra
+          framework: terraform
+          soft_fail: true
+
+      # Blocking gate: only the checks we classify as HIGH severity.
+      # Free Checkov has no severity levels (they need a Prisma Cloud API key),
+      # so "high severity" is defined explicitly here:
+      #   CKV_K8S_16  privileged container
+      #   CKV_K8S_17  container shares the host PID namespace
+      #   CKV_K8S_18  container shares the host IPC namespace
+      #   CKV_K8S_19  container shares the host network namespace
+      #   CKV_K8S_39  container has the CAP_SYS_ADMIN capability
+      - name: Checkov - high severity gate (blocking)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: infra
+          framework: terraform
+          check: CKV_K8S_16,CKV_K8S_17,CKV_K8S_18,CKV_K8S_19,CKV_K8S_39

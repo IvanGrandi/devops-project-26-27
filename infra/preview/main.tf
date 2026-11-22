@@ -10,7 +10,7 @@ terraform {
 }
 
 variable "pr_number" { type = string }
-variable "image"     { type = string }
+variable "image" { type = string }
 variable "owner" {
   type    = string
   default = "devops-team"
@@ -29,8 +29,8 @@ resource "kubernetes_namespace" "preview" {
   metadata {
     name = "pr-${var.pr_number}"
     labels = {
-      purpose  = "preview"
-      pr       = var.pr_number
+      purpose = "preview"
+      pr      = var.pr_number
       owner   = var.owner
       expires = var.expires
     }

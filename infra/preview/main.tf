@@ -60,7 +60,6 @@ resource "kubernetes_deployment" "app" {
           port {
             container_port = 3000
           }
-       
         }
       }
     }

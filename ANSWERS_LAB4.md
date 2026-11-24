@@ -86,3 +86,26 @@ If the target doesn't appear, we would check:
 - The labels of the ServiceMonitor in metadata.labels, to check that the key/value pairs required by Prometheus (release: monitoring) are present, so that it can select the ServiceMonitor resource.
 - The matchLabels and the namespaceSelector, to see if they match the labels and the namespace of the target Service.
 - The name of the port in both the Service and the ServiceMonitor, to check that they match.
+
+
+## Part 4
+
+4.1 These are the PromQL queries for each golden signal and their results when executing each in Query tab in Prometheus:
+
+# Traffic
+sum(rate(http_requests_total[5m]))
+Result: 0.3684236380606179
+# Error ratio
+sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))
+Results: Empty results - This query returned no data
+# p95 latency
+histogram_quantile(0.95,
+sum(rate(http_request_duration_seconds_bucket[5m])) by (le))
+Results: 0.9850000000000001
+# Memory per pod
+sum(container_memory_working_set_bytes{namespace="dev"}) by (pod)
+Results: 52154368 (pod="myapp-c5dd95f6c-82pqr")
+
+Question 4. Why is the 95th percentile more informative than the average latency?
+
+It is more important informative because it captures tail behavior and it is less distorted by outliers. Indeed a small number of very slow requests can pull the average up or down. Fot latency, this percentile means that 95% of the requests complete at or below that duration which gives a clearer view or real user latency than single average.

@@ -8,6 +8,6 @@ replicas:
     count: 1
 images:
   - name: ghcr.io/ivangrandi/devops-project-26-27
-    newTag: "9645b3536f777196b9bf88557f2bb3b83bb65aab"
+    newTag: "12e238db750821a8a2f77f408f1ec894cfcaf358"
 commonLabels:
   env: dev

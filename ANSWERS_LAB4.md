@@ -103,6 +103,6 @@ Mitigate is a temporary solution. It isn't the optimal long-term solution but an
 
 Blaming people is a bad practice, we don't want people to be scared to take responsibilities for their actions and trying to dissimulate their mistakes.
 
-**Question 8:**
+**Question 8: Propose two concrete changes to the pipeline from Sessions 1 to 3 that would have prevented or limited this incident (for example canary release or smoke tests).**
 
 
